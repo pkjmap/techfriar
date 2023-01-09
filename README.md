@@ -16,3 +16,4 @@
 }
 </code>
 
+- I did not do the Vue(frontend part as its time consuming). So License uploading part is not done. BUt if frontent is ready we can upload file with validation and base64_encoding 
