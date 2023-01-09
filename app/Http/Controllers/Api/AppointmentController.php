@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Appointment;
+use Illuminate\Support\Facades\DB;
 
 class AppointmentController extends Controller
 {
@@ -25,24 +26,14 @@ class AppointmentController extends Controller
             return false;
         }
 
-        
-        // do {
-        //     $slot = $slots[rand(0, count($slots) - 1)];
-        //     $code = Appointment::where('slot', $slot)
-        //     ->where('start_date_time', '>=', $request->start_date_time)
-        //     ->where('end_date_time', '<=', $request->end_date_time)
-        //     ->first();
-        // } while (!empty($code));
-
-        foreach($slots as $slot)
-        {
+        foreach ($slots as $slot) {
             $code = Appointment::where('slot', $slot)
-            ->where('vehicle_number', '!=', $request->vehicle_number)
-            ->where('start_date_time', '>=', $request->start_date_time)
-            ->where('end_date_time', '<=', $request->end_date_time)
-            ->first();
+                ->where('vehicle_number', '!=', $request->vehicle_number)
+                ->where('start_date_time', '>=', $request->start_date_time)
+                ->where('end_date_time', '<=', $request->end_date_time)
+                ->first();
 
-            if(!$code) {
+            if (!$code) {
                 break;
             } else {
                 continue;
@@ -55,17 +46,17 @@ class AppointmentController extends Controller
     }
     public function store(Request $request)
     {
-        $appintment = new Appointment();
-        $appintment->cust_name = $request->cust_name;
-        $appintment->phone = $request->phone;
-        $appintment->license_path = $request->license_path;
-        $appintment->vehicle_number = $request->vehicle_number;
-        $appintment->start_date_time = $request->start_date_time;
-        $appintment->end_date_time = $request->end_date_time;
+        $appointment = new Appointment();
+        $appointment->cust_name = $request->cust_name;
+        $appointment->phone = $request->phone;
+        $appointment->license_path = $request->license_path;
+        $appointment->vehicle_number = $request->vehicle_number;
+        $appointment->start_date_time = $request->start_date_time;
+        $appointment->end_date_time = $request->end_date_time;
         $slot = $this->availableSlot($request);
 
         if ($slot) {
-            $appintment->slot = $this->availableSlot($request);
+            $appointment->slot = $this->availableSlot($request);
         } else {
             return ['status' => 'No slot available for this time'];
         }
@@ -80,8 +71,46 @@ class AppointmentController extends Controller
             $timePart = ceil($timeDiff / (3 * 60 * 60));
             $parkingFee += ($timePart  * 5);
         }
-        $appintment->parking_fee = $parkingFee;
-        $appintment->save();
-        return $appintment;
+        $appointment->parking_fee = $parkingFee;
+        $appointment->save();
+        return $appointment;
+    }
+
+    public function checkout(Request $request)
+    {
+        $appointment = Appointment::find($request->id);
+
+        $timeDiff = time() - strtotime($appointment->start_date_time);
+
+        $parkingFee = 10;
+        if ($timeDiff <=  3 * 60 * 60) { // less than 3 hours
+            $parkingFee = 10;
+        } elseif ($timeDiff > 12 * 60 * 60) { // over night stay
+            $timePart = ceil($timeDiff / (12 * 60 * 60));
+            $parkingFee += ($timePart  * 100);
+        } else { // charge 5 for evey hours
+            $timePart = ceil($timeDiff / (3 * 60 * 60));
+            $parkingFee += ($timePart  * 5);
+        }
+        $appointment->end_date_time = time();
+        $appointment->parking_fee = $parkingFee;
+        $appointment->save();
+        return $appointment;
+    }
+
+    public function totalList()
+    {
+        $totals = DB::table('appointments')
+            ->selectRaw('sum(parking_fee) as total')
+            ->get();
+        
+        return $totals;
+    }
+
+    public function upcoming()
+    {
+        $upcoming = Appointment::where('start_date_time' ,'>=', time())->get();
+        
+        return $upcoming;
     }
 }
