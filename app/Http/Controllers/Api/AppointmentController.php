@@ -92,10 +92,10 @@ class AppointmentController extends Controller
         if ($timeDiff <=  3 * 60 * 60) { // less than 3 hours
             $parkingFee = 10;
         } elseif ($timeDiff > 12 * 60 * 60) { // over night stay
-            $timePart = ceil($timeDiff / (12 * 60 * 60));
+            $timePart = floor($timeDiff / (12 * 60 * 60));
             $parkingFee += ($timePart  * 100);
         } else { // charge 5 for evey hours
-            $timePart = ceil($timeDiff / (3 * 60 * 60));
+            $timePart = floor($timeDiff / (3 * 60 * 60));
             $parkingFee += ($timePart  * 5);
         }
         $appointment->end_date_time = time();
@@ -110,7 +110,7 @@ class AppointmentController extends Controller
             ->selectRaw('sum(parking_fee) as total')
             ->get();
 
-        return $totals;
+        return $totals[0];
     }
 
     public function upcoming()
