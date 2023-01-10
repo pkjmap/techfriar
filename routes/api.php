@@ -19,6 +19,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::post('save_appointment', 'App\Http\Controllers\Api\AppointmentController@store');
+Route::post('delete_appointment', 'App\Http\Controllers\Api\AppointmentController@delete');
 Route::post('checkout', 'App\Http\Controllers\Api\AppointmentController@checkout');
 Route::get('total_list', 'App\Http\Controllers\Api\AppointmentController@totalList');
 Route::get('upcoming', 'App\Http\Controllers\Api\AppointmentController@upcoming');

@@ -18,8 +18,8 @@ class AppointmentController extends Controller
             }
         }
         $record = Appointment::where('vehicle_number', $request->vehicle_number)
-            ->where('start_date_time', '>=', $request->start_date_time)
-            ->where('end_date_time', '<=', $request->end_date_time)
+            ->where('start_date_time', '>=', strtotime($request->start_date_time))
+            ->where('end_date_time', '<=', strtotime($request->end_date_time))
             ->first();
 
         if ($record) {
@@ -29,8 +29,8 @@ class AppointmentController extends Controller
         foreach ($slots as $slot) {
             $code = Appointment::where('slot', $slot)
                 ->where('vehicle_number', '!=', $request->vehicle_number)
-                ->where('start_date_time', '>=', $request->start_date_time)
-                ->where('end_date_time', '<=', $request->end_date_time)
+                ->where('start_date_time', '>=', strtotime($request->start_date_time))
+                ->where('end_date_time', '<=', strtotime($request->end_date_time))
                 ->first();
 
             if (!$code) {
@@ -40,27 +40,33 @@ class AppointmentController extends Controller
             }
         }
 
-
-
         return $slot;
     }
     public function store(Request $request)
     {
-        $appointment = new Appointment();
+        if (isset($request->id) && $request->id != '') {
+            $appointment = Appointment::find($request->id);
+        } else {
+            $appointment = new Appointment();
+        }
+
         $appointment->cust_name = $request->cust_name;
         $appointment->phone = $request->phone;
         $appointment->license_path = $request->license_path;
         $appointment->vehicle_number = $request->vehicle_number;
-        $appointment->start_date_time = $request->start_date_time;
-        $appointment->end_date_time = $request->end_date_time;
+        $appointment->start_date_time = strtotime($request->start_date_time);
+        $appointment->end_date_time = strtotime($request->end_date_time);
         $slot = $this->availableSlot($request);
 
-        if ($slot) {
-            $appointment->slot = $this->availableSlot($request);
-        } else {
-            return ['status' => 'No slot available for this time'];
+        if (empty($request->id)) {
+            if ($slot) {
+                $appointment->slot = $this->availableSlot($request);
+            } else {
+                return ['status' => 'No slot available for this time'];
+            }
         }
-        $timeDiff = $request->end_date_time - $request->start_date_time;
+
+        $timeDiff = strtotime($request->end_date_time) - strtotime($request->start_date_time);
         $parkingFee = 10;
         if ($timeDiff <=  3 * 60 * 60) { // less than 3 hours
             $parkingFee = 10;
@@ -73,7 +79,7 @@ class AppointmentController extends Controller
         }
         $appointment->parking_fee = $parkingFee;
         $appointment->save();
-        return $appointment;
+        return ['status' => 'Success!', 'data' => $appointment->toArray()];
     }
 
     public function checkout(Request $request)
@@ -103,14 +109,21 @@ class AppointmentController extends Controller
         $totals = DB::table('appointments')
             ->selectRaw('sum(parking_fee) as total')
             ->get();
-        
+
         return $totals;
     }
 
     public function upcoming()
     {
-        $upcoming = Appointment::where('start_date_time' ,'>=', time())->get();
-        
+        $upcoming = Appointment::where('start_date_time', '>=', time())->get();
+
         return $upcoming;
+    }
+
+    public function delete(Request $request)
+    {
+        Appointment::find($request->id)->delete();
+
+        return ['status' => 'Deleted successfully!'];
     }
 }
