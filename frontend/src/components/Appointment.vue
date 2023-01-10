@@ -45,16 +45,7 @@
                     </tbody>
                 </table>
                 <div class="clearfix">
-                    <div class="hint-text">Showing <b>5</b> out of <b>25</b> entries</div>
-                    <ul class="pagination">
-                        <li class="page-item disabled"><a href="#">Previous</a></li>
-                        <li class="page-item"><a href="#" class="page-link">1</a></li>
-                        <li class="page-item"><a href="#" class="page-link">2</a></li>
-                        <li class="page-item active"><a href="#" class="page-link">3</a></li>
-                        <li class="page-item"><a href="#" class="page-link">4</a></li>
-                        <li class="page-item"><a href="#" class="page-link">5</a></li>
-                        <li class="page-item"><a href="#" class="page-link">Next</a></li>
-                    </ul>
+                    <pagination :pagination="pagination" :callback="loadAppointments" :options="paginationOptions"></pagination>
                 </div>
             </div>
         </div>
@@ -171,9 +162,13 @@
 <script>
 import Vue from 'vue'
 import axios from 'axios'
+import pagination from 'vue-bootstrap-pagination'
 Vue.use(axios)
 export default {
   name: 'Appointment',
+  components: {
+    pagination
+  },
   data () {
     return {
       appointments: {},
@@ -185,6 +180,20 @@ export default {
         vehicle_number: 'test',
         start_date_time: '2023-03-12T16:24:22Z',
         end_date_time: '2023-03-12T17:24:22Z'
+      },
+      pagination: {
+        total: 0,
+        per_page: 5, // required
+        current_page: 1, // required
+        last_page: 0, // required
+        from: 1,
+        to: 12
+      },
+      paginationOptions: {
+        offset: 4,
+        previousText: 'Prev',
+        nextText: 'Next',
+        alwaysShowPrevNext: true
       }
     }
   },
@@ -193,11 +202,25 @@ export default {
   },
   methods: {
     loadAppointments () {
+      const options = {
+        params: {
+          paginate: this.pagination.per_page,
+          page: this.pagination.current_page
+        }
+      }
       var url = 'http://localhost/techfriar/api/upcoming'
-      axios.get(url)
+      axios.get(url, options)
         .then(
           ({data}) => {
-            this.appointments = data
+            this.appointments = data.data
+            this.pagination = {
+              total: data.total,
+              per_page: data.per_page, // required
+              current_page: data.current_page, // required
+              last_page: data.last_page, // required
+              from: data.from,
+              to: data.to
+            }
             console.log(JSON.stringify(data))
           }
         )
@@ -212,6 +235,11 @@ export default {
             console.log(JSON.stringify(data))
             this.loadAppointments()
             alert(data.status)
+            this.appointment.id = ''
+            this.appointment.cust_name = ''
+            this.appointment.phone = ''
+            this.appointment.license_path = ''
+            this.appointment.vehicle_number = ''
           }
         )
     },
@@ -224,6 +252,11 @@ export default {
             console.log(JSON.stringify(data))
             this.loadAppointments()
             alert(data.status)
+            this.appointment.id = ''
+            this.appointment.cust_name = ''
+            this.appointment.phone = ''
+            this.appointment.license_path = ''
+            this.appointment.vehicle_number = ''
           }
         )
     },
